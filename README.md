@@ -49,3 +49,42 @@ Primero de todo configuraremos la hora actumatica para prevenir posibles errores
 timedatectl set-timezone Europe/Madrid
 timedatectl set-ntp true
 ```
+EL siguiente passo es encongtarr el nombre del disco que usaremos para hacer la instalacion
+```
+lsblk -o NAME,KNAME,SIZE
+```
+Una vez sepamos el disco crearemos 2 particiones una de 512M para ell boot y una de el espacio que queramos darle al sistema operativo
+```
+cfdisk /dev/disco
+```
+Una vez tengamos creada la partcion del S.O. la encriptaremos
+```
+cryptsetup --type luks2 --cipher aes-xts-plain64 --key-size 512 --hash sha512 --iter-time 2000 --pbkdf argon2id --use-urandom --verify-passphrase luksFormat /dev/ParticionRoot
+```
+Una vez lo tengamos encriptado tendrmeo que abrirlo
+```
+cryptsetup luksOpen /dev/sda2 luks
+```
+
+```
+pvcreate /dev/mapper/luks
+vgcreate vg0 /dev/mapper/luks
+```
+
+```
+lvcreate -l +90%FREE vg0 -n root
+lvcreate -l +100%FREE vg0 -n swap
+```
+
+```
+mkfs.fat -F 32 /dev/sda1
+mkswap /dev/vg0/swap
+mkfs.ext4 /dev/vg0/root
+```
+
+```
+mount /dev/vg0/root /mnt
+mkdir /mnt/boot
+mount /dev/sda1 /mnt/boot
+swapon /dev/vg0/swap
+```
